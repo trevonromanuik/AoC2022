@@ -29,13 +29,9 @@ fn part2(input: &str) {
     loop {
 
         let line1 = lines.next();
-        if line1.is_none() { break; }
-
         let line2 = lines.next();
-        if line2.is_none() { break; }
-
         let line3 = lines.next();
-        if line3.is_none() { break; }
+        if line1.is_none() { break; }
 
         let pack1 = to_set(&line1.unwrap());
         let pack2 = to_set(&line2.unwrap());
