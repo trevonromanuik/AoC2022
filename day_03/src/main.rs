@@ -58,8 +58,7 @@ fn part2(input: &str) {
 
 fn to_set(pack: &str) -> HashSet<char> {
     let mut set: HashSet<char> = HashSet::new();
-    let chars = pack.chars().collect::<Vec<char>>();
-    for c in chars { set.insert(c); }
+    for c in pack.chars() { set.insert(c); }
     set
 }
 
