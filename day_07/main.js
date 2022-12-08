@@ -49,20 +49,23 @@ function print(node, name, prefix = '') {
 }
 
 let sum = 0;
-function calculate_sizes(node) {
+function calculate_sizes(node, key) {
     if(typeof node === 'number') {
         return node;
     } else {
         node.size = Object.keys(node.children).reduce((acc, key) => {
-            return acc + calculate_sizes(node.children[key]);
+            return acc + calculate_sizes(node.children[key], key);
         }, 0);
-        if(node.size <= 100000) sum += node.size;
+        if(node.size <= 100000) {
+            console.log(key, node.size)
+            sum += node.size;
+        }
         return node.size;
     }
 }
 
-calculate_sizes(root);
-print(root, '/');
+calculate_sizes(root, '/');
+// print(root, '/');
 console.log(`part 1: ${sum}`);
 
 const total_disk = 70000000;
