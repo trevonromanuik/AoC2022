@@ -8,11 +8,8 @@ fn main() {
 }
 
 fn solve(input: &str, num_knots: u32) -> usize {
-    let mut knots: Vec<(i32, i32)> = Vec::new();
-    for _ in 0..num_knots { knots.push((0, 0)); }
-    let mut visited: HashSet<(i32, i32)> = HashSet::new();
-    visited.insert(knots[knots.len() - 1]);
-    // print(&knots);
+    let mut knots = vec![(0,0); num_knots as usize];
+    let mut visited: HashSet<(i32, i32)> = HashSet::from([(0, 0)]);
     for line in input.lines() {
         let (dir, n) = line.split_once(" ").unwrap();
         let n: u32 = n.parse().unwrap();
@@ -39,35 +36,11 @@ fn solve(input: &str, num_knots: u32) -> usize {
 fn follow(head: &(i32, i32), tail: &(i32, i32)) -> (i32, i32) {
     let dx = head.0 - tail.0;
     let dy = head.1 - tail.1;
-    if dx > 1 {
-        if dy == 0 {
-            return (tail.0 + 1, tail.1);
-        } else {
-            return (tail.0 + 1, tail.1 + (dy / dy.abs()));
-        }
+    if dx.abs() > 1 || dy.abs() > 1 {
+       (tail.0 + dx.signum(), tail.1 + dy.signum()) 
+    } else {
+        (tail.0, tail.1)
     }
-    if dx < -1 { 
-        if dy == 0 {
-            return (tail.0 - 1, tail.1);
-        } else {
-            return (tail.0 - 1, tail.1 + (dy / dy.abs()));
-        }
-    }
-    if dy > 1 { 
-        if dx == 0 {
-            return (tail.0, tail.1 + 1);
-        } else {
-            return (tail.0 + (dx / dx.abs()), tail.1 + 1);
-        }
-    }
-    if dy < -1 { 
-        if dx == 0 {
-            return (tail.0, tail.1 - 1);
-        } else {
-            return (tail.0 + (dx / dx.abs()), tail.1 - 1);
-        }
-    }
-    return (tail.0, tail.1);
 }
 
 fn print(knots: &Vec<(i32, i32)>) {
