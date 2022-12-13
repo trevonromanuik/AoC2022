@@ -7,28 +7,22 @@ fn main() {
 }
 
 fn solve(input: &str, rounds: usize, worry_factor: usize) -> usize {
-    let mut monkeys: Vec<Monkey> = input
-        .split("\n\n")
-        .map(|chunk| {
-            let lines: Vec<&str> = chunk.lines().collect();
-            Monkey {
-                inspections: 0,
-                items: lines[1][18..]
-                    .split(", ")
-                    .map(|n| n.parse().unwrap())
-                    .collect(),
-                op: lines[2][23..24].to_string(),
-                op_n: lines[2][25..].parse().map_or(None, |n| Some(n)),
-                div: lines[3][21..].parse().unwrap(),
-                pass: lines[4][29..].parse().unwrap(),
-                fail: lines[5][30..].parse().unwrap(),
-            }
-        })
-        .collect();
+    let mut monkeys: Vec<Monkey> = input.split("\n\n").map(|chunk| {
+        let lines: Vec<&str> = chunk.lines().collect();
+        Monkey {
+            inspections: 0,
+            items: lines[1][18..].split(", ").map(|n| n.parse().unwrap()).collect(),
+            op: lines[2][23..24].to_string(),
+            op_n: lines[2][25..].parse().map_or(None, |n| Some(n)),
+            div: lines[3][21..].parse().unwrap(),
+            pass: lines[4][29..].parse().unwrap(),
+            fail: lines[5][30..].parse().unwrap(),
+        }
+    }).collect();
 
     let div_product: usize = monkeys.iter().map(|monkey| monkey.div).product();
-
-    for r in 0..rounds {
+    
+    for _ in 0..rounds {
         for i in 0..monkeys.len() {
             while let Some(item) = monkeys[i].items.pop() {
                 monkeys[i].inspections += 1;
