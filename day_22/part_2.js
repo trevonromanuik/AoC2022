@@ -1,64 +1,218 @@
 const fs = require('fs');
 const path = require('path');
 
-const debug = true;
-const input = fs.readFileSync(path.resolve(__dirname, "./input.txt"), 'utf-8');
+const test = false;
+const debug = false;
+const input_file = test ? './test_input.txt' : './input.txt';
+const input = fs.readFileSync(path.resolve(__dirname, input_file), 'utf-8');
 
 const lines = input.split('\r\n');
 const moves = lines.pop();
 lines.pop();
-const num_cols = Math.max(...lines.map((line) => {
-  return line.length;
-}));
-const map = lines.map((line) => {
-  const row = line.split('');
-  for(let i = row.length; i < num_cols; i++) {
-    row.push(' ');
-  }
-  return row;
+let num_tiles = 0;
+let max_line_length = 0;
+lines.forEach((line) => {
+  if(line.length > max_line_length) max_line_length = line.length;
+  num_tiles += line.trim().length;
 });
-const num_rows = map.length;
-const edge_size = num_rows / 3;
-let x = map[0].findIndex((v) => {
+const edge_size = Math.sqrt(num_tiles / 6);
+const num_cols = max_line_length / edge_size;
+const num_rows = lines.length / edge_size;
+const map_layout = test ? [
+  [,,0,],
+  [1,2,3,],
+  [,,4,5],
+] : [
+  [,0,1],
+  [,2,],
+  [3,4,],
+  [5,,],
+];
+const face_mappings = test ? [
+  // ..0.
+  // 123.
+  // ..45
+  {
+    i: 0,
+    ox: 2,
+    oy: 0,
+    '^': [1, 'v'],
+    'v': [3, 'v'],
+    '<': [2, 'v'],
+    '>': [5, '<'],
+  },
+  {
+    i: 1,
+    ox: 0,
+    oy: 1,
+    '^': [0, 'v'],
+    'v': [4, '^'],
+    '<': [5, '^'],
+    '>': [2, '>'],
+  },
+  {
+    i: 2,
+    ox: 1,
+    oy: 1,
+    '^': [0, '>'],
+    'v': [4, '>'],
+    '<': [1, '<'],
+    '>': [3, '>'],
+  },
+  {
+    i: 3,
+    ox: 2,
+    oy: 1,
+    '^': [0, '^'],
+    'v': [4, 'v'],
+    '<': [2, '<'],
+    '>': [5, 'v'],
+  },
+  {
+    i: 4,
+    ox: 2,
+    oy: 2,
+    '^': [3, '^'],
+    'v': [1, '^'],
+    '<': [2, '^'],
+    '>': [5, '>'],
+  },
+  {
+    i: 5,
+    ox: 3,
+    oy: 2,
+    '^': [3, '<'],
+    'v': [1, '>'],
+    '<': [4, '<'],
+    '>': [0, '<'],
+  },
+] : [
+  // .01
+  // .2.
+  // 34.
+  // 5..
+  {
+    i: 0,
+    ox: 1,
+    oy: 0,
+    '^': [5, '>'],
+    'v': [2, 'v'],
+    '<': [3, '>'],
+    '>': [1, '>'],
+  },
+  {
+    i: 1,
+    ox: 2,
+    oy: 0,
+    '^': [5, '^'],
+    'v': [2, '<'],
+    '<': [0, '<'],
+    '>': [4, '<'],
+  },
+  {
+    i: 2,
+    ox: 1,
+    oy: 1,
+    '^': [0, '^'],
+    'v': [4, 'v'],
+    '<': [3, 'v'],
+    '>': [1, '^'],
+  },
+  {
+    i: 3,
+    ox: 0,
+    oy: 2,
+    '^': [2, '>'],
+    'v': [5, 'v'],
+    '<': [0, '>'],
+    '>': [4, '>'],
+  },
+  {
+    i: 4,
+    ox: 1,
+    oy: 2,
+    '^': [2, '^'],
+    'v': [5, '<'],
+    '<': [3, '<'],
+    '>': [1, '<'],
+  },
+  {
+    i: 5,
+    ox: 0,
+    oy: 3,
+    '^': [3, '^'],
+    'v': [1, 'v'],
+    '<': [0, 'v'],
+    '>': [4, '^'],
+  },
+];
+
+const faces = face_mappings.map((mapping) => {
+  const map = new Array(edge_size);
+  for(let i = 0; i < edge_size; i++) {
+    map[i] = lines[mapping.oy * edge_size + i]
+      .substring(mapping.ox * edge_size, (mapping.ox + 1) * edge_size)
+      .split('');
+  }
+  return {
+    ...mapping,
+    map
+  };
+});
+
+let dir = '>';
+let f = 0;
+let y = 0;
+let x = faces[f].map[y].findIndex((v) => {
   return v === '.';
 });
-let y = 0;
-let dir = '>';
+
+function drawMap() {
+  for(let i = 0; i < num_rows; i++) {
+    for(let j = 0; j < edge_size; j++) {
+      let line = '';
+      for(let k = 0; k < num_cols; k++) {
+        const fi = map_layout[i][k];
+        if(isNaN(fi)) {
+          for(let l = 0; l < edge_size; l++) {
+            line += ' ';
+          }
+        } else {
+          line += faces[fi].map[j].join('');
+        }
+      }
+      console.log(line);
+    }
+  }
+  console.log();
+}
+
+if(debug) drawMap();
+
+let branches = {};
+['a', 'd', 'f', 'g', 'j', 'k', 'l', 'm', 'o', 'p'].forEach((k) => {
+  branches[k] = true;
+});
+
 for(let i = 0; i < moves.length; i++) {
   switch(moves[i]) {
     case 'L':
       if(debug) console.log('turning left');
-      switch(dir) {
-        case '^':
-          dir = '<';
-          break;
-        case 'v':
-          dir = '>';
-          break;
-        case '<':
-          dir = 'v';
-          break;
-        case '>':
-          dir = '^';
-          break;
-      }
+      dir = {
+        '^': '<',
+        'v': '>',
+        '<': 'v',
+        '>': '^',
+      }[dir];
       break;
     case 'R':
       if(debug) console.log('turning right');
-      switch(dir) {
-        case '^':
-          dir = '>';
-          break;
-        case 'v':
-          dir = '<';
-          break;
-        case '<':
-          dir = '^';
-          break;
-        case '>':
-          dir = 'v';
-          break;
-      }
+      dir = {
+        '^': '>',
+        'v': '<',
+        '<': '^',
+        '>': 'v',
+      }[dir];
       break;
     default:
       let j;
@@ -68,168 +222,144 @@ for(let i = 0; i < moves.length; i++) {
       const n = parseInt(moves.substring(i, j));
       if(debug) console.log(`moving ${dir} ${n}`);
       i = j - 1;
-      let dx = 0, dy = 0;
-      switch(dir) {
-        case '^':
-          dy = -1;
-          break;
-        case 'v':
-          dy = 1;
-          break;
-        case '<':
-          dx = -1;
-          break;
-        case '>':
-          dx = +1;
-          break;
-      }
       for(j = 0; j < n; j++) {
+        const [dx, dy] = {
+          '^': [0, -1],
+          'v': [0, 1],
+          '<': [-1, 0],
+          '>': [1, 0],
+        }[dir];
         let nx = x + dx;
-        let ny = y + dy;
+        let ny = y + dy;        
+        let nf = f;
         let ndir = dir;
-        if(nx < 0 || nx >= num_cols || ny < 0 || ny >= num_rows || map[ny][nx] === ' ') {
-          if(debug) console.log(nx, num_cols, ny, num_rows);
-          if(dir === '^') {
-            if(y === 0) {
-              ndir = 'v';
-              dx = 0;
-              dy = -1;
-              ny = edge_size;
-              nx = (3 * edge_size) - x;
-              if(debug) console.log('a0', x, y, nx, ny, dir, ndir);
-            } else if(y === edge_size) {
-              if(x < edge_size) {
-                ndir = 'v';
-                dx = 0;
-                dy = -1;
-                ny = 0;
-                nx = (3 * edge_size) - x;
-                if(debug) console.log('a', x, y, nx, ny, dir, ndir);
-              } else if(x < 2 * edge_size) {
-                ndir = '>';
-                dx = 1;
-                dy = 0;
-                ny = x - edge_size;
-                nx = 2 * edge_size;
-                if(debug) console.log('b', x, y, nx, ny, dir, ndir);
-              }
-            } else if(y === 2 * edge_size) {
-              ndir = '<';
-              dx = -1;
-              dy = 0;
-              ny = nx - edge_size;
-              nx = (2 * edge_size) - 1;
-              if(debug) console.log('c', x, y, nx, ny, dir, ndir);
-            }
-          } else if(dir === 'v') {
-            if(y === (2 * edge_size) - 1) {
-              if(x < edge_size) {
-                ndir = '^';
-                dx = 0;
-                dy = 1;
-                ny = (3 * edge_size) - 1;
-                nx = (3 * edge_size) - x;
-                if(debug) console.log('d', x, y, nx, ny, dir, ndir);
-              } else {
-                ndir = '>';
-                dx = 1;
-                dy = 0;
-                ny = (2 * edge_size) + nx;
-                nx = 2 * edge_size;
-                if(debug) console.log('e', x, y, nx, ny, dir, ndir);
-              }
-            } else if(y === (3 * edge_size) - 1) {
-              if(x < 3 * edge_size) {
-                ndir = '^';
-                dx = 0;
-                dy = -1;
-                nx = (3 * edge_size) - x - 1;
-                ny = (2 * edge_size) - 1;
-                if(debug) console.log('f0', x, y, nx, ny, dir, ndir);
-              } else {
-                ndir = '>';
-                dx = 1;
-                dy = 0;
-                ny = edge_size + (x - (3 * edge_size));
-                nx = 0;
-                if(debug) console.log('f', x, y, nx, ny, dir, ndir);
-              }
-            }
-          } else if (dir === '<') {
-            if(x === 0) {
-              ndir = '^';
-              dx = 0;
-              dy = 1;
-              nx = (3 * edge_size) + ((2 * edge_size) - y);
-              ny = (3 * edge_size) -1;
-              if(debug) console.log('g', x, y, nx, ny, dir, ndir);
-            } else if(x === 2 * edge_size) {
-              if(y < edge_size) {
-                ndir = 'v';
-                dx = 0;
-                dy = -1;
-                nx = edge_size + y;
-                ny = edge_size;
-                if(debug) console.log('h', x, y, nx, ny, dir, ndir);
-              } else {
-                ndir = '^';
-                dx = 0;
-                dy = -1;
-                nx = (3 * edge_size) - y;
-                ny = (2 * edge_size) - 1;
-                if(debug) console.log('i', x, y, nx, ny, dir, ndir);
-              }
-            }
-          } else if (dir === '>') {
-            if(x === (3 * edge_size) - 1) {
-              if(y < edge_size) {
-                ndir = '<';
-                dx = -1;
-                dy = 0;
-                nx = (3 * edge_size) - 1;
-                ny = (3 * edge_size) - y;
-                if(debug) console.log('j', x, y, nx, ny, dir, ndir);
-              } else {
-                ndir = 'v';
-                dx = 0;
-                dy = 1;
-                nx = ((3 * edge_size) - 1) + ((2 * edge_size) - y);
-                ny = 2 * edge_size;
-                if(debug) console.log('k', x, y, nx, ny, dir, ndir);
-              }
-            } else {
-              ndir = '<';
-              dx = -1;
-              dy = 0;
-              nx = (3 * edge_size) - 1;
-              ny = (4 * edge_size) - y;
-              if(debug) console.log('l', x, y, nx, ny, dir, ndir);
-            }
-          }
+        if(ny < 0 || ny >= edge_size || nx < 0 || nx >= edge_size) {
+          nf = faces[f][dir][0];
+          ndir = faces[f][dir][1];
+          let b;
+          ({
+            '^': () => {
+              ({
+                '^': () => {
+                  nx = x;
+                  ny = edge_size - 1;
+                  b = 'a';
+                },
+                'v': () => {
+                  nx = edge_size - x - 1;
+                  ny = 0;
+                  b = 'b';
+                },
+                '<': () => {
+                  nx = edge_size - 1;
+                  ny = edge_size - x - 1;
+                  b = 'c';
+                },
+                '>': () => {
+                  nx = 0;
+                  ny = x;
+                  b = 'd';
+                },
+              }[ndir])();
+            },
+            'v': () => {
+              ({
+                '^': () => {
+                  nx = edge_size - x - 1;
+                  ny = edge_size - 1;
+                  b = 'e';
+                },
+                'v': () => {
+                  nx = x;
+                  ny = 0;
+                  b = 'f';
+                },
+                '<': () => {
+                  nx = edge_size - 1;
+                  ny = x;
+                  b = 'g';
+                },
+                '>': () => {
+                  nx = 0;
+                  ny = edge_size - x - 1;
+                  b = 'h';
+                },
+              }[ndir])();
+            },
+            '<': () => {
+              ({
+                '^': () => {
+                  nx = edge_size - y - 1;
+                  ny = edge_size - 1;
+                  b = 'i';
+                },
+                'v': () => {
+                  nx = y;
+                  ny = 0;
+                  b = 'j';
+                },
+                '<': () => {
+                  nx = edge_size - 1;
+                  ny = y;
+                  b = 'k';
+                },
+                '>': () => {
+                  nx = 0;
+                  ny = edge_size - y - 1;
+                  b = 'l';
+                },
+              }[ndir])();
+            },
+            '>': () => {
+              ({
+                '^': () => {
+                  nx = y;
+                  ny = edge_size - 1;
+                  b = 'm';
+                },
+                'v': () => {
+                  nx = y + 1;
+                  ny = 0;
+                  b = 'n';
+                },
+                '<': () => {
+                  nx = edge_size - 1;
+                  ny = edge_size - y - 1;
+                  b = 'o';
+                },
+                '>': () => {
+                  nx = 0;
+                  ny = y;
+                  b = 'p';
+                },
+              }[ndir])();
+            },
+          }[dir])();
+          if(debug) console.log(b);
+          branches[b] = true;
         }
-        map[y][x] = dir;
-        if(debug) console.log('moving to', ny, nx, map[ny][nx]);
-        if(map[ny][nx] === '#') {
+        faces[f].map[y][x] = dir;
+        if(faces[nf].map[ny][nx] === '#') {
           break;
         }
+        faces[nf].map[ny][nx] = dir;
         x = nx;
         y = ny;
+        f = nf;
         dir = ndir;
       }
-      if(debug) {
-        map.forEach((row) => {
-          console.log(row.join(''));
-        });
-        console.log('');
-      }
+      if(debug) drawMap();
   }
 }
+
+if(!debug) drawMap();
+
 const dir_score = {
   '^': 3,
   'v': 1,
   '<': 2,
   '>': 0,
 }[dir];
-if(debug) console.log(y, x, dir);
-const code = ((y + 1) * 1000) + ((x + 1) * 4) + dir_score;
+const code = ((y + (edge_size * faces[f].oy) + 1) * 1000) + ((x + (edge_size * faces[f].ox) + 1) * 4) + dir_score;
 console.log(code);
+if(debug) console.log(Object.keys(branches).sort());
